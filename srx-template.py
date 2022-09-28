@@ -243,7 +243,26 @@ for host in host_list:
             cleanup(log)
 
         # Load the new config
-        cu.load(url=url, merge='True', format='text')
+        try:
+            cu.load(url=url, merge='True', format='text')
+        except Exception as error:
+            category = (str(error).split()[0].split("("))[0]
+            match category:
+                case 'ConfigLoadError':
+                    print ("Error Loading Config\n")
+                    if str(error).split()[2] == 'bad_element:':
+                        print ("Config file contains a bad element: " + str(error).split()[3])
+                        log_entry ('ERROR writing config\n' + str(error), log)
+                        cleanup(log)
+                case 'RpcTimeoutError':
+                    print ("A timeout occurred while trying to update the config\n")
+                case 'LockError':
+                    print ("Configuration cannot be locked. There may be uncommitted changes waiting, or another user has an exclusive lock")
+                case _:
+                    print ("A generic error has occurred\n")
+            print (error)
+            log_entry ('ERROR writing config\n' + str(error), log)
+            cleanup(log)
         compare = cu.diff()
         if compare == None:
             print (termcolor.colored("No changes to commit", "green"))
