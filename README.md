@@ -14,6 +14,7 @@ Push template config to SRX firewalls
     The script will tell the SRX to merge this config with the candidate config.
     Use -v or --verbose to see what config has been added
     Use -c or --commit to commit these changes (if this is not added, no changes will be made)
+    Optionally, add 'replace:' tags in front of some stanza to overwrite the config with changes (default only adds new config)
 
 ### Authentication:
     Supports username and password for login to NETCONF over SSH
