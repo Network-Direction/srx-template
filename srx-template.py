@@ -240,11 +240,12 @@ for host in host_list:
         if compare:
             print (termcolor.colored("Uncommitted config found, skipping " + dev.facts['hostname'], "red"))
             log_entry (dev.facts['hostname'] + ' already has uncommitted config (skipping...)', log)
-            cleanup(log)
+            #cleanup(log)
+            continue
 
         # Load the new config
         try:
-            cu.load(url=url, merge='True', format='text')
+            cu.load(url=url, format='text')
         except Exception as error:
             category = (str(error).split()[0].split("("))[0]
             match category:
@@ -272,7 +273,18 @@ for host in host_list:
                 print (compare)
             if args.commit:
                 print ("Committing Config...")
-                cu.commit()
+                try:
+                    cu.commit()
+                except Exception as error:
+                    category = str(error).split()[0].split("(")[0]
+                    match category:
+                        case 'CommitError':
+                            print ("An error has occurred while trying to commit the config\n")
+                            print ("This may occur if there's a \'replace\' tag in the .json file, and the stanza doesn't exist\n")
+                            print (str(error).split("message: ")[1])
+                        case _:
+                            print ("An error has occurred while trying to commit the config\n")
+                            print (error)
                 print ("Done")
                 log_entry ("Committed config to " + dev.facts['hostname'], log)
             else:
