@@ -240,7 +240,6 @@ for host in host_list:
         if compare:
             print (termcolor.colored("Uncommitted config found, skipping " + dev.facts['hostname'], "red"))
             log_entry (dev.facts['hostname'] + ' already has uncommitted config (skipping...)', log)
-            #cleanup(log)
             continue
 
         # Load the new config
@@ -254,6 +253,8 @@ for host in host_list:
                     if str(error).split()[2] == 'bad_element:':
                         print ("Config file contains a bad element: " + str(error).split()[3])
                         log_entry ('ERROR writing config\n' + str(error), log)
+                        print ("Rolling back changes")
+                        cu.rollback()
                         cleanup(log)
                 case 'RpcTimeoutError':
                     print ("A timeout occurred while trying to update the config\n")
@@ -280,15 +281,34 @@ for host in host_list:
                     match category:
                         case 'CommitError':
                             print ("An error has occurred while trying to commit the config\n")
-                            print ("This may occur if there's a \'replace\' tag in the .json file, and the stanza doesn't exist\n")
                             print (str(error).split("message: ")[1])
+                            print ("Rolling back changes\n")
+                            cu.rollback()
+                        case 'RpcTimeoutError':
+                            print ("We've experienced an RPC timeout while trying to commit the config\n")
+                            print ("Config may have applied before the timeout\n")
                         case _:
-                            print ("An error has occurred while trying to commit the config\n")
+                            print ("An unexpected error has occurred while trying to commit the config\n")
                             print (error)
+                            print ("Rolling back changes\n")
+                            cu.rollback()
                 print ("Done")
                 log_entry ("Committed config to " + dev.facts['hostname'], log)
             else:
                 print (termcolor.colored("Config will not be committed. Use --commit to commit changes", "red"))
+                try:
+                    cu.commit_check()
+                except Exception as error:
+                    category = str(error).split()[0].split("(")[0]
+                    match category:
+                        case 'CommitError':
+                            print ("There is an error with this config\n")
+                            print (str(error).split("message: ")[1])
+                        case 'RpcTimeoutError':
+                            print ("We've experienced an RPC timeout while testing the config\n")
+                        case _:
+                            print ("There is an error with this config\n")
+                            print (error)
                 cu.rollback()
 
 
